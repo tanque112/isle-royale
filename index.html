@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Isla Royale</title>
+  <meta name="description" content="Battle royale 3D en el navegador: salta del autobús, busca armas y sé el último en pie.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%232a8bd0'/%3E%3Cpath d='M12 40c6-14 14-20 20-20s14 6 20 20z' fill='%236cb33f'/%3E%3Crect x='26' y='22' width='6' height='16' fill='%23ffc531'/%3E%3Crect x='34' y='18' width='6' height='20' fill='%23a4553f'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=15">
+</head>
+<body>
+  <div id="game"></div>
+
+  <!-- ===================== HUD (interfaz durante la partida) ===================== -->
+  <div id="hud" class="hidden">
+    <div id="map-box">
+      <canvas id="minimap" width="200" height="200"></canvas>
+      <div id="storm-label"></div>
+    </div>
+
+    <div id="counters">
+      <div class="counter"><span class="ico">👤</span><span id="alive">0</span></div>
+      <div class="counter"><span class="ico">💀</span><span id="kills">0</span></div>
+    </div>
+    <div id="killfeed"></div>
+
+    <div id="center-msg"></div>
+    <div id="toast"></div>
+
+    <div id="crosshair">
+      <div class="ch ch-t"></div><div class="ch ch-b"></div><div class="ch ch-l"></div><div class="ch ch-r"></div>
+      <div class="ch-dot"></div>
+      <!-- escopeta: un cuadrado (sus 4 esquinas) que marca dónde caen los perdigones -->
+      <div class="ch-sq"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></div>
+    </div>
+    <div id="hitmarker"><i></i><i></i><i></i><i></i></div>
+    <div id="dmg-dirs"></div>
+    <div id="dmg-numbers"></div>
+
+    <div id="prompt"></div>
+    <div id="progress"><div id="progress-label"></div><div class="bar"><div id="progress-fill"></div></div></div>
+    <div id="struct-hp"><div id="struct-name"></div><div class="bar"><div id="struct-fill"></div></div></div>
+    <div id="mat-pop"></div>
+
+    <div id="vitals">
+      <div class="vital shield"><span class="vnum" id="shield-num">0</span><div class="vbar"><div class="vfill" id="shield-fill"></div><div class="vghost" id="shield-ghost"></div></div></div>
+      <div class="vital health"><span class="vnum" id="health-num">100</span><div class="vbar"><div class="vfill" id="health-fill"></div><div class="vghost" id="health-ghost"></div></div></div>
+      <div class="vital stamina" id="stamina"><span class="vnum">⚡</span><div class="vbar"><div class="vfill" id="stamina-fill"></div></div><span class="tired-lbl">CANSADO</span></div>
+    </div>
+
+    <div id="inventory">
+      <div id="weapon-info"><div id="weapon-name"></div><div id="weapon-ammo"></div></div>
+      <div id="mats"></div>
+      <div id="hotbar"></div>
+      <div class="inv-hint"><b>TAB</b> inventario · <b>Q</b> construir</div>
+    </div>
+    <div id="buildbar"></div>
+    <div id="fps"></div>
+
+    <div id="altitude"></div>
+    <div id="spectate"></div>
+  </div>
+
+  <!-- mira telescópica del francotirador (dibujada en SVG) -->
+  <div id="scope" class="hidden">
+    <svg id="scope-svg" viewBox="-500 -500 1000 1000" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <radialGradient id="lens" cx="0" cy="0" r="300" gradientUnits="userSpaceOnUse">
+          <stop offset="0.62" stop-color="rgba(0,0,0,0)"/>
+          <stop offset="0.9" stop-color="rgba(0,20,30,0.18)"/>
+          <stop offset="1" stop-color="rgba(0,0,0,0.65)"/>
+        </radialGradient>
+        <radialGradient id="glare" cx="-110" cy="-130" r="190" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="rgba(200,230,255,0.10)"/>
+          <stop offset="1" stop-color="rgba(200,230,255,0)"/>
+        </radialGradient>
+        <mask id="hole"><rect x="-3000" y="-3000" width="6000" height="6000" fill="#fff"/><circle r="300" fill="#000"/></mask>
+      </defs>
+      <g id="scope-move" transform="scale(1.27)">
+        <rect x="-3000" y="-3000" width="6000" height="6000" fill="#000" mask="url(#hole)"/>
+        <circle r="300" fill="url(#lens)"/>
+        <circle r="300" fill="url(#glare)"/>
+        <circle r="300" fill="none" stroke="#111" stroke-width="14"/>
+        <circle r="293" fill="none" stroke="rgba(60,70,80,0.8)" stroke-width="2"/>
+        <!-- retícula dúplex: postes gruesos fuera, hilos finos en el centro -->
+        <g fill="#050505">
+          <rect x="-300" y="-4" width="190" height="8"/><rect x="110" y="-4" width="190" height="8"/>
+          <rect x="-4" y="110" width="8" height="190"/><rect x="-4" y="-300" width="8" height="190"/>
+          <rect x="-110" y="-0.8" width="220" height="1.6"/><rect x="-0.8" y="-110" width="1.6" height="220"/>
+        </g>
+        <!-- puntos mil para calcular la caída de la bala -->
+        <g fill="#050505" id="mil-dots"></g>
+        <circle r="2.2" fill="#e8322b"/>
+        <text x="16" y="96" fill="rgba(0,0,0,0.75)" font-size="11" font-family="Rubik, Arial">100</text>
+        <text x="16" y="146" fill="rgba(0,0,0,0.75)" font-size="11" font-family="Rubik, Arial">200</text>
+      </g>
+    </svg>
+    <div id="scope-hint"><b>Shift</b> aguantar la respiración</div>
+  </div>
+  <div id="storm-tint"></div>
+  <div id="hurt-flash"></div>
+
+  <!-- Inventario (TAB) -->
+  <div id="inv-panel" class="hidden">
+    <div class="inv-box">
+      <div class="inv-head"><h2>INVENTARIO</h2><span>Arrastra para ordenar · TAB para cerrar</span></div>
+      <div class="inv-cols">
+        <div class="inv-col">
+          <h3>Pico, armas y curas</h3>
+          <div id="inv-slots"></div>
+          <div id="inv-detail"></div>
+        </div>
+        <div class="inv-col">
+          <h3>Munición</h3>
+          <div id="inv-ammo"></div>
+          <h3>Materiales</h3>
+          <div id="inv-mats"></div>
+          <h3>Salud</h3>
+          <div id="inv-heal"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bigmap" class="hidden">
+    <canvas id="bigmap-canvas" width="760" height="760"></canvas>
+    <div class="hint">Pulsa M para cerrar el mapa</div>
+  </div>
+
+  <!-- ===================== Pantallas ===================== -->
+  <div id="loading" class="screen">
+    <div class="logo">ISLA <span>ROYALE</span></div>
+    <div class="loading-text" id="loading-text">Generando la isla…</div>
+  </div>
+
+  <div id="menu" class="screen hidden">
+    <div class="menu-wrap">
+      <div class="logo">ISLA <span>ROYALE</span></div>
+      <div class="tagline">Salta del autobús, encuentra armas y sé el último en pie</div>
+      <!-- cuenta del jugador (la rellena account.js) -->
+      <div id="acct-bar" class="panel acct-bar"></div>
+      <div class="menu-grid">
+        <div class="panel settings">
+          <h3>Partida</h3>
+          <label>Bots
+            <select id="opt-bots"></select>
+          </label>
+          <label>Dificultad
+            <select id="opt-diff">
+              <option value="facil">Fácil</option>
+              <option value="normal" selected>Normal</option>
+              <option value="dificil">Difícil</option>
+            </select>
+          </label>
+          <label>Cámara
+            <select id="opt-cam">
+              <option value="tercera" selected>Tercera persona</option>
+              <option value="primera">Primera persona</option>
+            </select>
+          </label>
+          <label>Gráficos
+            <select id="opt-quality">
+              <option value="alta">Altos (sombras y bordes suaves)</option>
+              <option value="media" selected>Medios (recomendado)</option>
+              <option value="baja">Bajos (ordenadores lentos)</option>
+            </select>
+          </label>
+          <label class="check"><input type="checkbox" id="opt-autores" checked> Resolución automática (baja la calidad si va lento)</label>
+          <label class="check"><input type="checkbox" id="opt-fps"> Mostrar FPS</label>
+          <label>Sensibilidad <span id="sens-val">1.0</span>
+            <input type="range" id="opt-sens" min="0.2" max="3" step="0.1" value="1">
+          </label>
+          <label>Volumen <span id="vol-val">70</span>
+            <input type="range" id="opt-vol" min="0" max="1" step="0.05" value="0.7">
+          </label>
+          <button id="btn-play" class="big-btn">JUGAR</button>
+          <div class="shop-row">
+            <button id="btn-locker" class="sec-btn">🎒 Taquilla</button>
+            <button id="btn-shop" class="sec-btn">🛒 Tienda</button>
+          </div>
+          <div class="coins-line">🪙 <b id="menu-coins">0</b> monedas <span>· se ganan jugando partidas</span></div>
+        </div>
+        <div class="panel net" id="net-panel">
+          <h3>Con amigos</h3>
+          <label class="net-name">Tu nombre <input id="net-name" maxlength="14" autocomplete="off" spellcheck="false"></label>
+          <div id="net-idle">
+            <button id="btn-host" class="sec-btn wide">Crear partida</button>
+            <div class="join-row">
+              <input id="net-code" maxlength="6" placeholder="CÓDIGO" autocomplete="off" spellcheck="false">
+              <button id="btn-join" class="sec-btn">Unirse</button>
+            </div>
+            <p class="small">Uno crea la partida y pasa el código de 5 letras a sus amigos (hasta 8 jugadores). Funciona por internet, sin instalar nada.</p>
+          </div>
+          <div id="net-room" class="hidden">
+            <div class="room-code">Sala <b id="net-room-code"></b> <button id="btn-copy" class="mini-btn">Copiar</button></div>
+            <ul id="net-players"></ul>
+            <p id="net-hint" class="small"></p>
+            <button id="btn-leave" class="sec-btn">Salir de la sala</button>
+          </div>
+          <p id="net-status" class="small warn"></p>
+          <p id="net-mode" class="small"></p>
+        </div>
+        <div class="panel controls">
+          <h3>Controles</h3>
+          <ul>
+            <li><b>WASD</b> moverse · <b>Ratón</b> mirar · <b>Espacio</b> saltar</li>
+            <li><b>Clic izq.</b> disparar / picar / usar cura · <b>Clic der.</b> apuntar</li>
+            <li><b>F</b> pico · <b>1-5</b> o <b>rueda</b> armas y curas</li>
+            <li><b>E</b> recoger / abrir cofre · <b>R</b> recargar</li>
+            <li><b>Q</b> construir: <b>1</b> pared · <b>2</b> suelo · <b>3</b> rampa · <b>4</b> cono</li>
+            <li>&nbsp;&nbsp;clic der. cambia el material · <b>R</b> gira la rampa</li>
+            <li><b>TAB</b> inventario · <b>M</b> mapa · <b>V</b> cámara</li>
+            <li><b>Shift</b> correr (te cansas) · <b>C</b> agacharse · <b>Esc</b> pausa</li>
+            <li><b>E</b> junto a una moto: subir · <b>W/S</b> acelerar/frenar · <b>A/D</b> girar</li>
+            <li>Rompe un panel de un edificio y tápalo: tu pared encaja justo en el hueco</li>
+          </ul>
+          <h3>Rarezas</h3>
+          <div class="rarities">
+            <span style="--c:#aab0b6">Común</span>
+            <span style="--c:#4fcf4f">Poco común</span>
+            <span style="--c:#3d8bff">Rara</span>
+            <span style="--c:#b452ff">Épica</span>
+            <span style="--c:#ffa21c">Legendaria</span>
+          </div>
+          <p class="small">Cuanto más rara, más daño hace… y más difícil es de encontrar. Los cofres dan mejores armas que el suelo.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Taquilla y tienda: skins y picos -->
+  <div id="shop" class="screen hidden">
+    <div class="panel shop-box">
+      <div class="shop-head">
+        <div class="shop-tabs"><button data-tab="locker">🎒 TAQUILLA</button><button data-tab="store">🛒 TIENDA</button></div>
+        <div class="shop-coins">🪙 <b id="shop-coins">0</b></div>
+        <button id="shop-close" class="mini-btn" title="Cerrar (Esc)">✕</button>
+      </div>
+      <div class="shop-body">
+        <div id="shop-lists" class="shop-lists">
+          <h3>Skins</h3><div id="shop-skins" class="shop-grid"></div>
+          <h3>Picos</h3><div id="shop-picks" class="shop-grid"></div>
+        </div>
+        <div class="shop-side">
+          <canvas id="shop-preview" width="300" height="380"></canvas>
+          <div id="shop-info"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Entrar / crear cuenta -->
+  <div id="auth" class="screen hidden">
+    <div class="panel auth-box">
+      <div class="shop-head">
+        <div class="shop-tabs"><button data-mode="login">ENTRAR</button><button data-mode="register">CREAR CUENTA</button></div>
+        <button id="auth-close" class="mini-btn" title="Cerrar (Esc)">✕</button>
+      </div>
+      <form id="auth-form" autocomplete="on">
+        <label>Nombre de jugador <input id="auth-name" maxlength="14" autocomplete="username" spellcheck="false"></label>
+        <label>Contraseña <input id="auth-pass" type="password" maxlength="64" autocomplete="current-password"></label>
+        <label id="auth-pass2-row">Repite la contraseña <input id="auth-pass2" type="password" maxlength="64" autocomplete="new-password"></label>
+        <p id="auth-err" class="small warn"></p>
+        <button type="submit" id="auth-go" class="big-btn">ENTRAR</button>
+      </form>
+      <p id="auth-note" class="small"></p>
+    </div>
+  </div>
+
+  <!-- Rankings: bajas, victorias y rango -->
+  <div id="ranking" class="screen hidden">
+    <div class="panel rank-box">
+      <div class="shop-head">
+        <div class="shop-tabs"><button data-tab="kills">💀 BAJAS</button><button data-tab="wins">👑 VICTORIAS</button><button data-tab="rp">🏅 RANGO</button></div>
+        <button id="ranking-close" class="mini-btn" title="Cerrar (Esc)">✕</button>
+      </div>
+      <p id="rank-where" class="small"></p>
+      <div id="rank-info"></div>
+      <div id="rank-list"></div>
+    </div>
+  </div>
+
+  <div id="pause" class="screen hidden">
+    <div class="panel center-panel">
+      <h2>PAUSA</h2>
+      <button id="btn-resume" class="big-btn">CONTINUAR</button>
+      <p class="small">Haz clic en cualquier sitio para seguir jugando.</p>
+      <p id="lock-help" class="small warn hidden">El navegador no ha dejado capturar el ratón todavía. Espera un segundo y vuelve a hacer clic.</p>
+      <button id="btn-quit" class="sec-btn">Salir al menú</button>
+    </div>
+  </div>
+
+  <div id="end" class="screen hidden">
+    <div class="panel center-panel">
+      <div id="end-title">¡VICTORIA!</div>
+      <div id="end-sub"></div>
+      <div id="end-stats"></div>
+      <p id="end-net" class="small"></p>
+      <div class="btn-row">
+        <button id="btn-again" class="big-btn">JUGAR OTRA VEZ</button>
+        <button id="btn-spectate" class="sec-btn">Ver el resto de la partida</button>
+        <button id="btn-menu" class="sec-btn">Menú</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="click-to-play" class="hidden">Haz clic para jugar</div>
+
+  <!-- three.js (librería 3D) y el juego -->
+  <script src="lib/three.min.js?v=15"></script>
+  <script src="js/config.js?v=15"></script>
+  <script src="js/online.js?v=15"></script>
+  <script src="js/utils.js?v=15"></script>
+  <script src="js/style.js?v=15"></script>
+  <script src="js/physics.js?v=15"></script>
+  <script src="js/audio.js?v=15"></script>
+  <script src="js/models.js?v=15"></script>
+  <script src="js/nav.js?v=15"></script>
+  <script src="js/destruct.js?v=15"></script>
+  <script src="js/world.js?v=15"></script>
+  <script src="js/roads.js?v=15"></script>
+  <script src="js/decor.js?v=15"></script>
+  <script src="js/towns.js?v=15"></script>
+  <script src="js/interiors.js?v=15"></script>
+  <script src="js/villages.js?v=15"></script>
+  <script src="js/effects.js?v=15"></script>
+  <script src="js/loot.js?v=15"></script>
+  <script src="js/character.js?v=15"></script>
+  <script src="js/combat.js?v=15"></script>
+  <script src="js/build.js?v=15"></script>
+  <script src="js/vehicles.js?v=15"></script>
+  <script src="js/player.js?v=15"></script>
+  <script src="js/bots.js?v=15"></script>
+  <script src="js/bus.js?v=15"></script>
+  <script src="js/storm.js?v=15"></script>
+  <script src="lib/peerjs.min.js?v=15"></script>
+  <script src="js/net.js?v=15"></script>
+  <script src="js/hud.js?v=15"></script>
+  <script src="js/shop.js?v=15"></script>
+  <script src="js/account.js?v=15"></script>
+  <script src="js/game.js?v=15"></script>
+</body>
+</html>
