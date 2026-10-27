@@ -78,8 +78,9 @@
       const L = p.level, h = SW / 2;
       const u0 = U[U.length - 1] - h, u1 = U[0] + h, v0 = V[0] - h, v1 = V[V.length - 1] + h;
       // asfalto de todo el centro (suelo del mapa: no se rompe)
-      const all = Rr(u0, u1, v0, v1);
-      this.gbox(all[0], L - 1, all[1], all[2], L + 0.04, all[3], 0x4a4d52, { jitter: 0, noBottom: true });
+      // asfalto sólo en las calles (no por debajo de las manzanas: de lejos taparía los parques)
+      for (const u of U) { const r = Rr(u - h, u + h, v0, v1); this.gbox(r[0], L - 1, r[1], r[2], L + 0.04, r[3], 0x4a4d52, { jitter: 0, noBottom: true }); }
+      for (const v of V) { const r = Rr(u0, u1, v - h, v + h); this.gbox(r[0], L - 1, r[1], r[2], L + 0.04, r[3], 0x4a4d52, { jitter: 0, noBottom: true }); }
       // líneas discontinuas en el centro de cada calle
       for (const u of U) {
         for (let v = v0 + 2; v < v1 - 3; v += 7) {

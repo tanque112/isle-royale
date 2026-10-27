@@ -127,7 +127,7 @@
     burst: {
       id: 'burst', name: 'Fusil de ráfagas', fem: false, ammo: 'medium', weight: 18,
       damage: [27, 29, 30, 32, 33], headMult: 2.0, structMult: 1,          // común a rara: Capítulo 1; épica y legendaria: aprox.
-      fireRate: 1.3, burst: 3, burstGap: 0.07, auto: false, mag: 30, reload: [2.9, 2.75, 2.6, 2.5, 2.4], pellets: 1,
+      fireRate: 2.1, burst: 3, burstGap: 0.06, auto: false, mag: 30, reload: [2.9, 2.75, 2.6, 2.5, 2.4], pellets: 1,
       spread: { hip: 0.03, ads: 0.008, move: 0.022, air: 0.07, crouch: 0.65, bloom: 0.005, bloomMax: 0.03 },
       range: 300, falloff: [45, 180, 0.7], adsFov: 50, recoil: 0.008,
     },
@@ -135,7 +135,7 @@
     tactical: {
       id: 'tactical', name: 'Escopeta táctica', fem: true, ammo: 'shells', weight: 20,
       damage: [67, 70, 74, 78, 81], headMult: 2.0, structMult: 1,          // común a rara: Capítulo 1; épica y legendaria: aprox.
-      fireRate: 1.5, auto: false, mag: 8, reload: [6.3, 6.0, 5.7, 5.4, 5.1], pellets: 10,
+      fireRate: 2.2, auto: false, mag: 8, reload: [6.3, 6.0, 5.7, 5.4, 5.1], pellets: 10,
       spread: { hip: 0.058, ads: 0.044, move: 0.01, air: 0.02, crouch: 0.85, bloom: 0, bloomMax: 0 },
       range: 45, falloff: [7, 30, 0.25], adsFov: 64, recoil: 0.035,
     },

@@ -984,12 +984,24 @@
         // el sitio del cofre se reserva antes de amueblar
         let chest = null;
         if (chestFloors.has(k)) {
-          const useMax = s.doorSide === 'xmin' ? true : s.doorSide === 'xmax' ? false : this.r() < 0.5;
-          for (let t = 0; t < 10 && !chest; t++) {
-            const chx = useMax ? mx1 - 0.55 : mx0 + 0.55;
-            const chz = this.rr(mz0 + 1.0, mz1 - 1.0);
-            const r = [chx - 0.6, chz - 0.8, chx + 0.6, chz + 0.8];
-            if (this._ifree(ctx, A, r)) { chest = { x: chx, y, z: chz, rot: useMax ? Math.PI / 2 : -Math.PI / 2 }; A.occ.push(r); }
+          // pegado a una pared (cualquiera de las cuatro, mirando hacia dentro); si no cabe, donde haya sitio
+          const walls = ['xmax', 'xmin', 'zmax', 'zmin'];
+          for (let t = 0; t < 30 && !chest; t++) {
+            const w = walls[t % 4];
+            let chx, chz, rot, r;
+            if (w === 'xmax' || w === 'xmin') {
+              chx = w === 'xmax' ? mx1 - 0.55 : mx0 + 0.55; chz = this.rr(mz0 + 1.0, mz1 - 1.0);
+              rot = w === 'xmax' ? Math.PI / 2 : -Math.PI / 2; r = [chx - 0.6, chz - 0.8, chx + 0.6, chz + 0.8];
+            } else {
+              chz = w === 'zmax' ? mz1 - 0.55 : mz0 + 0.55; chx = this.rr(mx0 + 1.0, mx1 - 1.0);
+              rot = w === 'zmax' ? 0 : Math.PI; r = [chx - 0.8, chz - 0.6, chx + 0.8, chz + 0.6];
+            }
+            if (this._ifree(ctx, A, r)) { chest = { x: chx, y, z: chz, rot, indoor: true }; A.occ.push(r); }
+          }
+          for (let t = 0; t < 20 && !chest; t++) {
+            const chx = this.rr(mx0 + 1.2, mx1 - 1.2), chz = this.rr(mz0 + 1.2, mz1 - 1.2);
+            const r = [chx - 0.8, chz - 0.8, chx + 0.8, chz + 0.8];
+            if (this._ifree(ctx, A, r)) { chest = { x: chx, y, z: chz, rot: Math.atan2(chx - cx, chz - cz), indoor: true }; A.occ.push(r); }
           }
         }
         const plan = this._iplan(s.theme, k, s.floors);

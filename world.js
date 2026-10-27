@@ -938,7 +938,12 @@
       const SW = 10;
       this.streets = S;
       // asfalto (suelo del mapa: no se rompe)
-      this.gbox(-106, L - 1, -106, 106, L + 0.04, 106, 0x4a4d52, { jitter: 0, noBottom: true });
+      // asfalto sólo en las calles (si va también por debajo de las manzanas, visto de lejos se
+      // dibuja por encima de los parques y las aceras y lo deja todo negro)
+      for (const s of S) {
+        this.gbox(s - SW / 2, L - 1, -106, s + SW / 2, L + 0.04, 106, 0x4a4d52, { jitter: 0, noBottom: true });
+        this.gbox(-106, L - 1, s - SW / 2, 106, L + 0.04, s + SW / 2, 0x4a4d52, { jitter: 0, noBottom: true });
+      }
       // líneas de la carretera
       for (const s of S) {
         for (let t = -104; t < 104; t += 7) {
@@ -1923,7 +1928,7 @@
     scatterOutdoorLoot() {
       const R = C.islandRadius;
       let loot = 0, chests = 0;
-      for (let i = 0; i < 7000 && (loot < 300 || chests < 66); i++) {
+      for (let i = 0; i < 9000 && (loot < 300 || chests < 100); i++) {
         const a = this.rr(0, 6.28), d = Math.sqrt(this.r()) * R;
         const x = Math.cos(a) * d, z = Math.sin(a) * d;
         const h = G.Phys.heightAt(x, z);
@@ -1931,7 +1936,7 @@
         if (!G.Phys.lineClear(x, h + 0.3, z, x, h + 3, z)) continue;
         const near = G.Phys.query(x - 0.8, z - 0.8, x + 0.8, z + 0.8, []);
         if (near.some((b) => b.y1 > h + 0.2 && b.y0 < h + 2)) continue;
-        if (chests < 66 && this.r() < 0.25) { this.chestSpots.push({ x, y: h, z, rot: this.rr(0, 6.28) }); chests++; }
+        if (chests < 100 && this.r() < 0.3) { this.chestSpots.push({ x, y: h, z, rot: this.rr(0, 6.28) }); chests++; }
         else if (loot < 300) { this.lootSpots.push({ x, y: h, z }); loot++; }
       }
     },
